@@ -16,8 +16,9 @@ from caffe.proto import caffe_pb2
 
 
 
-def preprocess (im):	
-	return detect_face(im)
+def preprocess (im):
+	nim = normalize(im)
+	return detect_face(nim)
 
 # This function detect the face in image and return the cropped face if found, and the entire image otherwise.	
 def detect_face(im):
@@ -76,19 +77,20 @@ def align(face):
 	return face
 '''
 	
-	
-	
+def normalize(im):
+	nim = pv.other.normalize.selfQuotientImage(im,sigma=5.0)
+	return nim
 
-
+ 
 
 
 
 if __name__ == '__main__':
 	# Uncomment this code section and comment the code below it to use the preprocessing pipeline for one image
-	'''
+	
 	# reading the image,, TODO This should be extended to work with batch of images 
 	#im = cv2.imread('pyvision_notebooks/img/faceU.png', cv2.IMREAD_GRAYSCALE)
-	im = pv.Image('pyvision_notebooks/img/me.jpg').asBW()
+	im = pv.Image('pyvision_notebooks/img/face.png').asBW()
 	#thumbnail resizes the image while preserving the aspect ration....resize alone will make the face undetectable sometimes	
 	sim = im.thumbnail((256,256))
 	fim = preprocess(sim)
@@ -113,7 +115,7 @@ if __name__ == '__main__':
 	#       http://deepdish.io/2015/04/28/creating-lmdb-in-python/
 	# Modified by: Mustafa Al-Turki 2018
 	
-	lmdb_file = "./lmdb/age_test_lmdb"
+	lmdb_file = "C:/Users/TOSHIBA/Desktop/172/ICS_411_Senior_Project/lmdb/age_test_lmdb"
 	lmdb_env = lmdb.open(lmdb_file)
 	lmdb_txn = lmdb_env.begin()
 	lmdb_cursor = lmdb_txn.cursor()
@@ -139,3 +141,5 @@ if __name__ == '__main__':
 			print count
 		except:
 			print "skipped"
+			
+			'''
