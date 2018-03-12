@@ -91,6 +91,7 @@ def main(argv=None):
         crops = []
         crop = tf.image.resize_images(image, (RESIZE_FINAL, RESIZE_FINAL))
         crops.append(standardize_image(crop))
+
         image_batch = tf.stack(crops)
         outputnode = graph.get_tensor_by_name('prefix/output/output:0')
         softmax_output = tf.nn.softmax(outputnode)

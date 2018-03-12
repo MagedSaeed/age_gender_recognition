@@ -1,3 +1,4 @@
+#!python2
 # This file is for preprocessing face images
 # Author: Mustafa Al-Turki Feb, 2018
 
@@ -88,14 +89,17 @@ def normalize(im):
 if __name__ == '__main__':
 	# Uncomment this code section and comment the code below it to use the preprocessing pipeline for one image
 	
-	# reading the image,, TODO This should be extended to work with batch of images 
+	# reading the image
 	#im = cv2.imread('pyvision_notebooks/img/faceU.png', cv2.IMREAD_GRAYSCALE)
-	im = pv.Image('pyvision_notebooks/img/face.png').asBW()
+	im = pv.Image('pyvision_notebooks/img/me.jpg').asBW()
 	#thumbnail resizes the image while preserving the aspect ration....resize alone will make the face undetectable sometimes	
-	sim = im.thumbnail((256,256))
+	sim = im.thumbnail((512,512))
 	fim = preprocess(sim)
 	#saving the image may need to be moved to another place
-	#cv2.imwrite('pyvision_notebooks/img/croped.jpg',fim.asOpenCV2())
+	fim.show(delay=0)
+	fim = fim.thumbnail((512,512))
+	print fim.size
+	cv2.imwrite('pyvision_notebooks/img/croped.jpg',fim.asOpenCV2())
 	fim.show(delay=0)
 	cv2.destroyAllWindows()
 	'''
@@ -141,5 +145,5 @@ if __name__ == '__main__':
 			print count
 		except:
 			print "skipped"
-			
 			'''
+			
