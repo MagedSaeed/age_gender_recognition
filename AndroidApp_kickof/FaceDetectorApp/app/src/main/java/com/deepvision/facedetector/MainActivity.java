@@ -273,21 +273,6 @@ protected void makeRequest() {
         }
     }
 
-//    public void goToDetectFaceActivity(Bitmap img){
-//        //Convert to byte array
-//        int height = (int) ( img.getHeight() * (500 / img.getWidth()) );
-//        Bitmap scaled = Bitmap.createScaledBitmap(img, 500, height, true);
-//        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-//        scaled.compress(Bitmap.CompressFormat.PNG, 100, stream);
-//        byte[] byteArray = stream.toByteArray();
-//        Intent intent = new Intent(this, FaceDetectorAct.class);
-//        intent.putExtra("img", byteArray);
-//        MainActivity.this.startActivity(intent);
-//
-//        // recieved in the second activity as follows:
-////        byte[] byteArray = getIntent().getByteArrayExtra("image");
-////        Bitmap bmp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length);
-//    }
 
     private void detectFases(Bitmap img) {
         Paint rectPaint = new Paint();
@@ -301,7 +286,6 @@ protected void makeRequest() {
 
         FaceDetector faceDetector = new FaceDetector.Builder(getApplicationContext())
                 .setTrackingEnabled(false)
-                .setLandmarkType(FaceDetector.ALL_LANDMARKS)
                 .setMode(FaceDetector.FAST_MODE)
                 .build();
         if(!faceDetector.isOperational())
