@@ -34,7 +34,6 @@ import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -97,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
                 // Perform action on click
                 if(img !=null)
 //                    goToDetectFaceActivity(img);
-                    detectFases(img);
+                    detectFaces(img);
 
                 else
                     Toast.makeText(MainActivity.this, "There is no image!!", Toast.LENGTH_LONG).show();
@@ -119,9 +118,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
 
     }
-protected void makeRequest() {
 
-    }
 
     private void selectImage() {
 
@@ -238,8 +235,20 @@ protected void makeRequest() {
         }
 
 
-        int height = (int) ( thumbnail.getHeight() * (2048.0 / thumbnail.getWidth()) );
-        Bitmap scaled = Bitmap.createScaledBitmap(thumbnail, 2048, height, true);
+//        int height = (int) ( thumbnail.getHeight() * (640 / thumbnail.getWidth()) );
+        // new height and width for the image to be suitable for the face detection algorithm.
+        int height,width;
+        if(thumbnail.getHeight()<1000 || thumbnail.getWidth() <1000) {
+            height = (int) (thumbnail.getHeight()*0.75);
+            width = (int) (thumbnail.getWidth()*0.75);
+        }
+        else{
+            height = (int) (thumbnail.getHeight()*0.30);
+            width = (int) (thumbnail.getWidth()*0.30);
+        }
+
+
+        Bitmap scaled = Bitmap.createScaledBitmap(thumbnail, width, height, true);
         return scaled;
     }
 
@@ -273,8 +282,7 @@ protected void makeRequest() {
         }
     }
 
-
-    private void detectFases(Bitmap img) {
+    private void detectFaces(Bitmap img) {
         Paint rectPaint = new Paint();
         final Bitmap tempBitmap = Bitmap.createBitmap(img.getWidth(),img.getHeight(), Bitmap.Config.RGB_565);
         Canvas canvas = new Canvas(tempBitmap);
@@ -286,28 +294,30 @@ protected void makeRequest() {
 
         FaceDetector faceDetector = new FaceDetector.Builder(getApplicationContext())
                 .setTrackingEnabled(false)
-                .setMode(FaceDetector.FAST_MODE)
+                .setLandmarkType(FaceDetector.ALL_LANDMARKS)
+                .setMode(FaceDetector.ACCURATE_MODE)
                 .build();
         if(!faceDetector.isOperational())
         {
             Toast.makeText(MainActivity.this, "Face Detector could not be set up on your device", Toast.LENGTH_SHORT).show();
             return;
         }
-        Frame frame = new Frame.Builder().setBitmap(img).build();
-        SparseArray<Face> sparseArray = faceDetector.detect(frame);
+        else {
+            Frame frame = new Frame.Builder().setBitmap(img).build();
+            SparseArray<Face> sparseArray = faceDetector.detect(frame);
 
-        for(int i=0;i<sparseArray.size();i++)
-        {
-            Face face = sparseArray.valueAt(i);
-                    float x1=face.getPosition().x;
-                    float y1 =face.getPosition().y;
-                    float x2 = x1+face.getWidth();
-                    float y2=y1+face.getHeight();
-                    RectF rectF = new RectF(x1,y1,x2,y2);
-                    canvas.drawRoundRect(rectF,2,2,rectPaint);
+            for (int i = 0; i < sparseArray.size(); i++) {
+                Face face = sparseArray.valueAt(i);
+                float x1 = face.getPosition().x;
+                float y1 = face.getPosition().y;
+                float x2 = x1 + face.getWidth();
+                float y2 = y1 + face.getHeight();
+                RectF rectF = new RectF(x1, y1, x2, y2);
+                canvas.drawRoundRect(rectF, 2, 2, rectPaint);
+            }
+
+            viewImageFacesDetected.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
         }
-
-        viewImageFacesDetected.setImageDrawable(new BitmapDrawable(getResources(),tempBitmap));
     }
 
     /**
