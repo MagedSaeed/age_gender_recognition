@@ -39,15 +39,21 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Date;
+
+import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
 
 public class MainActivity extends AppCompatActivity {
+    // initialize global fields of the app.
     ImageView viewImage;
     ImageView viewImageFacesDetected;
     Button selectImageButton;
-    Button editImageButton;
     Button detectFaceButton;
     Bitmap img;
+    TensorFlowInferenceInterface inferenceInterface;
+    String imageName;
 
     final int CAMERA_REQUEST_CODE = 3;
     final int STORAGE_REQUEST_CODE = 4;
@@ -56,14 +62,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // define some fields.
         viewImage = findViewById(R.id.viewImage);
         viewImageFacesDetected = findViewById(R.id.viewImageDetectedFaces);
         selectImageButton = findViewById(R.id.btnSelectPhoto);
-//        editImageButton = findViewById(R.id.mImage);
         detectFaceButton = findViewById(R.id.dFaces);
 
-//        editImageButton.setEnabled(viewImage.getDrawable()!=null);
+        // enable the button only when there is image on the image view.
         detectFaceButton.setEnabled(viewImage.getDrawable()!=null);
+
 
         // to ask for permission at runtime:
         int cameraPermission = ContextCompat.checkSelfPermission(this,
@@ -91,16 +99,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // import the model
+        inferenceInterface = new TensorFlowInferenceInterface(getAssets(), "opt_frozen_model.pb");
         detectFaceButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                // Perform action on click
                 if(img !=null)
-//                    goToDetectFaceActivity(img);
                     detectFaces(img);
-
                 else
                     Toast.makeText(MainActivity.this, "There is no image!!", Toast.LENGTH_LONG).show();
-
             }
         });
 
@@ -131,7 +137,11 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int item) {
                 if (options[item].equals("Take Photo")) {
                     Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                    File f = new File(Environment.getExternalStorageDirectory(), "temp.jpg");
+                    //save image on a temp file.
+                    // The image name is "temp[current timestamp].jpg".
+                    Date d = new Date();
+                    imageName = "temp"+d.getTime()+".jpg";
+                    File f = new File(Environment.getExternalStorageDirectory(), imageName);
                     intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(f));
                     startActivityForResult(intent, 1);
                 }
@@ -153,12 +163,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
-//            editImageButton.setEnabled(true);
+            // enable detectFaceButton
             detectFaceButton.setEnabled(true);
+
+            // get the temp image
             if (requestCode == 1) {
                 File f = new File(Environment.getExternalStorageDirectory().toString());
                 for (File temp : f.listFiles()) {
-                    if (temp.getName().equals("temp.jpg")) {
+                    if (temp.getName().equals(imageName)) {
                         f = temp;
                         break;
                     }
@@ -170,25 +182,35 @@ public class MainActivity extends AppCompatActivity {
                             bitmapOptions);
                     img = rotateBitmap(bitmap, f.getAbsolutePath());
                     viewImage.setImageBitmap(img);
-                    String path = android.os.Environment
-                            .getExternalStorageDirectory()
-                            + File.separator
-                            + "Phoenix" + File.separator + "default";
+
+                    // delete temp image.
                     f.delete();
-                    OutputStream outFile = null;
-                    File file = new File(path, String.valueOf(System.currentTimeMillis()) + ".jpg");
-                    try {
-                        outFile = new FileOutputStream(file);
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outFile);
-                        outFile.flush();
-                        outFile.close();
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+
+
+
+                    // this code might be added in case of saving the image after manipulation.
+                    // I GUESS !!
+
+//                    String path = android.os.Environment
+//                            .getExternalStorageDirectory()
+//                            + File.separator
+//                            + "Phoenix" + File.separator + "default";
+//
+//                    OutputStream outFile;
+//
+//                    File file = new File(path, String.valueOf(System.currentTimeMillis()) + ".jpg");
+//                    try {
+//                        outFile = new FileOutputStream(file);
+//                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outFile);
+//                        outFile.flush();
+//                        outFile.close();
+//                    } catch (FileNotFoundException e) {
+//                        e.printStackTrace();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -198,6 +220,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Uri selectedImage = data.getData();
                 String[] filePath = { MediaStore.Images.Media.DATA };
+                assert selectedImage != null;
                 Cursor c = getContentResolver().query(selectedImage,filePath, null, null, null);
                 c.moveToFirst();
                 int columnIndex = c.getColumnIndex(filePath[0]);
@@ -317,7 +340,50 @@ public class MainActivity extends AppCompatActivity {
             }
 
             viewImageFacesDetected.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
+            predictAge(tempBitmap);
         }
+    }
+
+    public double predictAge(Bitmap image){
+        int INPUT_SIZE = 227;
+//        String MODEL_FILE = "opt_frozen_model.pb";
+//        String IMAGE_FILE="file:///android_asset/1.jpg";
+        String INPUT_NAME = "batch_processing/Reshape:0";
+        String OUTPUT_NAME = "output/output:0";
+        String[] OUTPUT_NAMES = {OUTPUT_NAME};
+        int[] intValues = new int[INPUT_SIZE * INPUT_SIZE];
+        float[] floatValues = new float[INPUT_SIZE * INPUT_SIZE * 3];
+            //load the image and decode it.
+
+
+        Bitmap originalBitmap = image;
+
+
+        //resize to 227*227
+        Bitmap bitmap = Bitmap.createScaledBitmap(originalBitmap, INPUT_SIZE , INPUT_SIZE , false);
+
+        bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
+        for (int i = 0; i < intValues.length; ++i) {
+            floatValues[i * 3 + 0] = ((intValues[i] >> 16) & 0xFF) / 255.0f;
+            floatValues[i * 3 + 1] = ((intValues[i] >> 8) & 0xFF) / 255.0f;
+            floatValues[i * 3 + 2] = (intValues[i] & 0xFF) / 255.0f;
+        }
+
+        inferenceInterface.feed(INPUT_NAME, floatValues, 1, 227, 227, 3);
+
+        inferenceInterface.run(OUTPUT_NAMES, false);
+
+
+        float[] outputs = new float[8];
+        inferenceInterface.fetch(OUTPUT_NAME, outputs);
+
+        Log.v("OUTPUTC", Arrays.toString(outputs));
+
+        return  0.0;
+    }
+
+    static {
+        System.loadLibrary("tensorflow_inference");
     }
 
     /**
