@@ -1,9 +1,12 @@
 package com.deepvision.facedetector;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -13,10 +16,13 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -35,14 +41,14 @@ import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Date;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
+
+import static android.graphics.Bitmap.createScaledBitmap;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -166,8 +172,9 @@ public class MainActivity extends AppCompatActivity {
             // enable detectFaceButton
             detectFaceButton.setEnabled(true);
 
-            // get the temp image
+
             if (requestCode == 1) {
+                // get image from camera
                 File f = new File(Environment.getExternalStorageDirectory().toString());
                 for (File temp : f.listFiles()) {
                     if (temp.getName().equals(imageName)) {
@@ -180,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
                     BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
                     bitmap = BitmapFactory.decodeFile(f.getAbsolutePath(),
                             bitmapOptions);
-                    img = rotateBitmap(bitmap, f.getAbsolutePath());
+                    img = fixBitmapOrientation(bitmap, f.getAbsolutePath());
                     viewImage.setImageBitmap(img);
 
                     // delete temp image.
@@ -189,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
 
 
                     // this code might be added in case of saving the image after manipulation.
-                    // I GUESS !!
+                    // I GUESS !! I GUESS !! I GUESS !! I GUESS !!
 
 //                    String path = android.os.Environment
 //                            .getExternalStorageDirectory()
@@ -218,25 +225,26 @@ public class MainActivity extends AppCompatActivity {
 
             } else if (requestCode == 2) {
 
+                // get image from gallery
                 Uri selectedImage = data.getData();
                 String[] filePath = { MediaStore.Images.Media.DATA };
                 assert selectedImage != null;
                 Cursor c = getContentResolver().query(selectedImage,filePath, null, null, null);
+                assert c != null;
                 c.moveToFirst();
                 int columnIndex = c.getColumnIndex(filePath[0]);
                 String picturePath = c.getString(columnIndex);
                 c.close();
                 Bitmap thumbnail = (BitmapFactory.decodeFile(picturePath));
-                img = rotateBitmap(thumbnail, picturePath);
+                img = fixBitmapOrientation(thumbnail, picturePath);
                 Log.w("Image Path from Gallery", picturePath+"");
                 viewImage.setImageBitmap(img);
-
             }
         }
     }
 
-    private Bitmap rotateBitmap(Bitmap thumbnail, String picturePath) {
-        // code to rotate image if it is not rotated properly.
+    private Bitmap fixBitmapOrientation(Bitmap thumbnail, String picturePath) {
+        // code to rotate image if it is not rotated properly when it is taken from camera.
         try {
             ExifInterface exif = new ExifInterface(picturePath);
             int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 1);
@@ -253,31 +261,51 @@ public class MainActivity extends AppCompatActivity {
             }
             thumbnail = Bitmap.createBitmap(thumbnail, 0, 0, thumbnail.getWidth(), thumbnail.getHeight(), matrix, true); // rotating bitmap
         }
-        catch (Exception e) {
+        catch (Exception ignored) {
 
         }
 
-
-//        int height = (int) ( thumbnail.getHeight() * (640 / thumbnail.getWidth()) );
-        // new height and width for the image to be suitable for the face detection algorithm.
+        // reduce the image size to 25% if it is greater than 100 in width or to 70% it it is less.
         int height,width;
         if(thumbnail.getHeight()<1000 || thumbnail.getWidth() <1000) {
-            height = (int) (thumbnail.getHeight()*0.75);
-            width = (int) (thumbnail.getWidth()*0.75);
+            height = (int) (thumbnail.getHeight()*0.70);
+            width = (int) (thumbnail.getWidth()*0.70);
         }
         else{
             height = (int) (thumbnail.getHeight()*0.30);
             width = (int) (thumbnail.getWidth()*0.30);
         }
 
+        return createScaledBitmap(thumbnail, width, height, true);
 
-        Bitmap scaled = Bitmap.createScaledBitmap(thumbnail, width, height, true);
-        return scaled;
+
+//        // new height and width for the image to be suitable for the face detection algorithm.
+//           It destructs the image though.
+
+//        int height,width, orgHight, orgWidth;
+//        width = 640; // targeted width of the image
+//        orgHight = thumbnail.getHeight();
+//        orgWidth = thumbnail.getWidth();
+//        height = orgHight/(orgWidth/width); // targeted height.
+//        Bitmap scaledImage;
+//        if(orgWidth>width)
+//            scaledImage = Bitmap.createScaledBitmap(thumbnail, width, height, true);
+//        else
+//            scaledImage = thumbnail;
+//        return scaledImage;
     }
+
+    // rotate bitmap image to a given angle.
+    private Bitmap rotateBitmap(Bitmap source, float angle){
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+    }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+                                           @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
             case CAMERA_REQUEST_CODE: {
 
@@ -305,42 +333,123 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // method to detect faces.
+    // the face detection api is google vision.
+
     private void detectFaces(Bitmap img) {
-        Paint rectPaint = new Paint();
-        final Bitmap tempBitmap = Bitmap.createBitmap(img.getWidth(),img.getHeight(), Bitmap.Config.RGB_565);
-        Canvas canvas = new Canvas(tempBitmap);
-        canvas.drawBitmap(img,0,0,null);
-
-        rectPaint.setStrokeWidth(5);
-        rectPaint.setColor(Color.RED);
-        rectPaint.setStyle(Paint.Style.STROKE);
-
-        FaceDetector faceDetector = new FaceDetector.Builder(getApplicationContext())
+        // face detector class coming from the google library.
+        final FaceDetector faceDetector = new FaceDetector.Builder(getApplicationContext())
                 .setTrackingEnabled(false)
                 .setLandmarkType(FaceDetector.ALL_LANDMARKS)
                 .setMode(FaceDetector.ACCURATE_MODE)
                 .build();
+        // check if the class is working, if not show a toast and, automatically, return.
         if(!faceDetector.isOperational())
-        {
             Toast.makeText(MainActivity.this, "Face Detector could not be set up on your device", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        else {
-            Frame frame = new Frame.Builder().setBitmap(img).build();
-            SparseArray<Face> sparseArray = faceDetector.detect(frame);
 
-            for (int i = 0; i < sparseArray.size(); i++) {
-                Face face = sparseArray.valueAt(i);
-                float x1 = face.getPosition().x;
-                float y1 = face.getPosition().y;
-                float x2 = x1 + face.getWidth();
-                float y2 = y1 + face.getHeight();
-                RectF rectF = new RectF(x1, y1, x2, y2);
-                canvas.drawRoundRect(rectF, 2, 2, rectPaint);
+        else {
+
+            @SuppressLint("StaticFieldLeak")
+            // This class is added to provide multithreading and progress bar.
+                // the progress bar will not be working outside a thread.
+                // AsyncTask is a light threading strategy created by android developers.
+
+            class DetectFaces extends AsyncTask<Bitmap, Float, SparseArray<Face>> {
+                // class fields
+                private Frame frame;
+                private SparseArray<Face> sparseArray;
+                private ProgressDialog pr = new ProgressDialog(MainActivity.this);
+                private Bitmap suitableImage;
+                private float angle;
+                private float incrementer = 90; // incrementer on the image rotation.
+
+                @Override
+                protected void onPreExecute() {
+                    // show the progress bar on the pre-execution of the face detector.
+                    pr.setTitle("Face Detection");
+                    pr.setMessage("Detecting faces in the image, please wait!");
+                    pr.show();
+                }
+
+
+                @Override
+                protected SparseArray<Face> doInBackground(Bitmap... bitmaps) {
+                    frame = new Frame.Builder().setBitmap(bitmaps[0]).build();
+                    sparseArray = faceDetector.detect(frame);
+                    angle = incrementer;
+                    suitableImage = bitmaps[0];
+                    while(sparseArray.size()==0 && angle <= 360) {
+                        suitableImage = rotateBitmap(bitmaps[0], angle);
+                        frame = new Frame.Builder().setBitmap(suitableImage).build();
+                        sparseArray = faceDetector.detect(frame);
+                        publishProgress(angle);
+                        angle += incrementer;
+                    }
+                    return sparseArray;
+                }
+
+                @Override
+                protected void onProgressUpdate(Float... values) {
+                    super.onProgressUpdate(values);
+                    pr.setMessage("Original Image does not contain any frontal faces." +
+                            " Trying to rotate image" +
+                            " to:" + values[0]+" and detect faces!!");
+                }
+
+                @Override
+                protected void onPostExecute(SparseArray<Face> faceSparseArray) {
+                    pr.setMessage("Faces are detected at angle: "+(angle-incrementer));
+                    pr.dismiss();
+
+                    // get the painter ready to draw rectangles on the image.
+                    Paint rectPaint = new Paint();
+                    Bitmap tempBitmap = Bitmap.createBitmap(suitableImage.getWidth(),suitableImage.getHeight(), Bitmap.Config.RGB_565);
+                    Canvas canvas = new Canvas(tempBitmap);
+                    canvas.drawBitmap(suitableImage,0,0,null);
+                    rectPaint.setStrokeWidth(5);
+                    rectPaint.setColor(Color.RED);
+                    rectPaint.setStyle(Paint.Style.STROKE);
+
+                    Log.v("OUTPUTC", sparseArray.size()+"");// log cat the number of detected faces.
+
+                    if(faceSparseArray.size() != 0) {
+                        // for each face, draw a rectangle
+                        for (int i = 0; i < sparseArray.size(); i++) {
+                            Face face = sparseArray.valueAt(i);
+                            float x1 = face.getPosition().x;
+                            float y1 = face.getPosition().y;
+                            float x2 = x1 + face.getWidth();
+                            float y2 = y1 + face.getHeight();
+                            RectF rectF = new RectF(x1, y1, x2, y2);
+                            canvas.drawRoundRect(rectF, 2, 2, rectPaint);
+                        }
+
+                        // restore the bitmap to its original orientation before rotations and display on the image view.
+                        tempBitmap = rotateBitmap(tempBitmap, -(angle-incrementer));
+                        viewImageFacesDetected.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
+
+                        // predict using the model.
+                        predictAge(suitableImage);
+                    }
+                    // if there is no faces detected, get "no-faces-deteceted.png" from the assets folder.
+                    else{
+                        AssetManager assetManager = getAssets();
+                        try {
+                            InputStream ims = assetManager.open("no-face-detected.png");
+                            Drawable no_face_detected_image = Drawable.createFromStream(ims, null);
+                            viewImageFacesDetected.setImageDrawable(no_face_detected_image);
+                            Log.v("OUTPUTC", getResources().getIdentifier("no-face-detected.png","drawable",getPackageName())+"");
+
+                        }
+                        catch (IOException ex) {
+                            Toast.makeText(MainActivity.this,"some problems occurred. Anyway, there is no face detected", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
             }
 
-            viewImageFacesDetected.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
-            predictAge(tempBitmap);
+            new DetectFaces().execute(img);
+
         }
     }
 
@@ -356,11 +465,8 @@ public class MainActivity extends AppCompatActivity {
             //load the image and decode it.
 
 
-        Bitmap originalBitmap = image;
-
-
         //resize to 227*227
-        Bitmap bitmap = Bitmap.createScaledBitmap(originalBitmap, INPUT_SIZE , INPUT_SIZE , false);
+        Bitmap bitmap = createScaledBitmap(image, INPUT_SIZE , INPUT_SIZE , false);
 
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         for (int i = 0; i < intValues.length; ++i) {
