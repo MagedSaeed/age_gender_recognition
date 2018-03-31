@@ -3,6 +3,7 @@ package com.deepvision.facedetector;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -25,6 +26,7 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.res.TypedArrayUtils;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -41,13 +43,16 @@ import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
 
+import static android.graphics.Bitmap.createBitmap;
 import static android.graphics.Bitmap.createScaledBitmap;
 
 
@@ -106,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // import the model
-        inferenceInterface = new TensorFlowInferenceInterface(getAssets(), "opt_frozen_model.pb");
+        inferenceInterface = new TensorFlowInferenceInterface(getAssets(), "model.pb");
         detectFaceButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if(img !=null)
@@ -412,6 +417,8 @@ public class MainActivity extends AppCompatActivity {
 
                     Log.v("OUTPUTC", sparseArray.size()+"");// log cat the number of detected faces.
 
+                    // create array of bitmaps to hold the faces.
+                    Bitmap faces [] = new Bitmap[sparseArray.size()];
                     if(faceSparseArray.size() != 0) {
                         // for each face, draw a rectangle
                         for (int i = 0; i < sparseArray.size(); i++) {
@@ -421,15 +428,24 @@ public class MainActivity extends AppCompatActivity {
                             float x2 = x1 + face.getWidth();
                             float y2 = y1 + face.getHeight();
                             RectF rectF = new RectF(x1, y1, x2, y2);
+                            faces[i] = Bitmap.createBitmap(suitableImage, (int)x1, (int)y1,
+                                            (int)face.getWidth(), (int)face.getHeight());
                             canvas.drawRoundRect(rectF, 2, 2, rectPaint);
                         }
 
-                        // restore the bitmap to its original orientation before rotations and display on the image view.
+                        // restore the bitmap to their original orientation before rotations and display on the image view.
                         tempBitmap = rotateBitmap(tempBitmap, -(angle-incrementer));
-                        viewImageFacesDetected.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
+
+                        // same thing is applied to faces as well
+                        for(int i=0; i<faces.length; i++)
+                            faces[i] = rotateBitmap(faces[i], -(angle-incrementer));
+
+                        // show the image with faces detected on the screen.
+//                        viewImageFacesDetected.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
+                        viewImageFacesDetected.setImageDrawable(new BitmapDrawable(getResources(), faces[0]));
 
                         // predict using the model.
-                        predictAge(suitableImage);
+                        predictAge(faces);
                     }
                     // if there is no faces detected, get "no-faces-deteceted.png" from the assets folder.
                     else{
@@ -453,38 +469,60 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public double predictAge(Bitmap image){
-        int INPUT_SIZE = 227;
+    public double predictAge(Bitmap[] faces) {
+        int INPUT_SIZE = 64;
 //        String MODEL_FILE = "opt_frozen_model.pb";
 //        String IMAGE_FILE="file:///android_asset/1.jpg";
-        String INPUT_NAME = "batch_processing/Reshape:0";
-        String OUTPUT_NAME = "output/output:0";
-        String[] OUTPUT_NAMES = {OUTPUT_NAME};
+//        String INPUT_NAME = "batch_processing/Reshape:0";
+//        String OUTPUT_NAME = "output/output:0";
+        String INPUT_NAME = "input_1";
+        String OUTPUT_NAME_GENDER = "dense_1/Softmax";
+        String OUTPUT_NAME_AGE = "dense_2/Softmax";
+        String[] OUTPUT_NAMES = {OUTPUT_NAME_AGE, OUTPUT_NAME_GENDER};
         int[] intValues = new int[INPUT_SIZE * INPUT_SIZE];
         float[] floatValues = new float[INPUT_SIZE * INPUT_SIZE * 3];
-            //load the image and decode it.
+        //load the image and decode it.
 
 
-        //resize to 227*227
-        Bitmap bitmap = createScaledBitmap(image, INPUT_SIZE , INPUT_SIZE , false);
+
+        //resize to INPUT_SIZE
+        Bitmap bitmap = createScaledBitmap(faces[0], INPUT_SIZE , INPUT_SIZE , true);
 
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
+
         for (int i = 0; i < intValues.length; ++i) {
-            floatValues[i * 3 + 0] = ((intValues[i] >> 16) & 0xFF) / 255.0f;
-            floatValues[i * 3 + 1] = ((intValues[i] >> 8) & 0xFF) / 255.0f;
-            floatValues[i * 3 + 2] = (intValues[i] & 0xFF) / 255.0f;
+            final int val = intValues[i];
+
+//            floatValues[i * 3 + 0] = ((intValues[i] >> 16) & 0xFF ) / 255.0f;
+//            floatValues[i * 3 + 1] = ((intValues[i] >> 8) & 0xFF ) / 255.0f;
+//            floatValues[i * 3 + 2] = (intValues[i] & 0xFF ) / 255.0f;
+
+            floatValues[i * 3 + 0] = ((val >> 16) & 0xFF );
+            floatValues[i * 3 + 1] = ((val >> 8) & 0xFF );
+            floatValues[i * 3 + 2] = (val & 0xFF );
+
+            floatValues[i*3 + 2] = Color.red(val);
+            floatValues[i*3 + 1] = Color.green(val);
+            floatValues[i*3] = Color.blue(val);
         }
 
-        inferenceInterface.feed(INPUT_NAME, floatValues, 1, 227, 227, 3);
+        Log.v("OUTPUTC", "FLOAT_VALUES: "+Arrays.toString(floatValues));
+
+
+        inferenceInterface.feed(INPUT_NAME, floatValues, 1, INPUT_SIZE, INPUT_SIZE, 3);
 
         inferenceInterface.run(OUTPUT_NAMES, false);
 
+        float[] outputs_gender = new float[2];
+        inferenceInterface.fetch(OUTPUT_NAME_GENDER, outputs_gender);
 
-        float[] outputs = new float[8];
-        inferenceInterface.fetch(OUTPUT_NAME, outputs);
+        float[] outputs_age = new float[101];
+        inferenceInterface.fetch(OUTPUT_NAME_AGE, outputs_age);
+//        Log.v("OUTPUTC", Arrays.toString(outputs));
 
-        Log.v("OUTPUTC", Arrays.toString(outputs));
-
+//        Arrays.sort(outputs_age);
+        Log.v("OUTPUTC", Arrays.toString(outputs_gender));
+        Log.v("OUTPUTC", Arrays.toString(outputs_age));
         return  0.0;
     }
 
