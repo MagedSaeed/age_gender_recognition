@@ -129,8 +129,27 @@
 
             </LinearLayout>
 
+            <Button
+                android:id="@+id/pred_disabled_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Faces with predictions"
+                android:layout_marginBottom="10dp"/>
+
+            <GridView
+                android:id="@+id/grid_view"
+                android:layout_marginBottom="40dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:gravity="center"
+                android:horizontalSpacing="10dp"
+                android:numColumns="auto_fit"
+                android:stretchMode="columnWidth"
+                android:verticalSpacing="10dp">
+
+            </GridView>
         </LinearLayout>
     </ScrollView>
-
 
 </LinearLayout>
