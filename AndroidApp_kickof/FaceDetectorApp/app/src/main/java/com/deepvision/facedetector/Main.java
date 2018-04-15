@@ -27,11 +27,9 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.SparseArray;
-import android.util.TypedValue;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
-import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -42,8 +40,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
-
-import static android.graphics.Bitmap.createScaledBitmap;
 
 
 public class Main extends AppCompatActivity {
@@ -81,7 +77,8 @@ public class Main extends AppCompatActivity {
         selectImageButton = findViewById(R.id.btnSelectPhoto);
         detectFaceButton = findViewById(R.id.dFaces);
         predButton = findViewById(R.id.pred_disabled_button);
-        predButton.setVisibility(View.INVISIBLE);
+        predButton.setVisibility(View.VISIBLE);
+        predButton.setEnabled(false);
 
         // enable the button only when there is image on the image view.
         detectFaceButton.setEnabled(viewImage.getDrawable() != null);
@@ -115,7 +112,7 @@ public class Main extends AppCompatActivity {
         detectFaceButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (img != null)
-                    detectFaces(img);
+                    detectAndPredictFaces(img);
                 else
                     Toast.makeText(Main.this, "There is no image!!", Toast.LENGTH_LONG).show();
             }
@@ -260,17 +257,19 @@ public class Main extends AppCompatActivity {
 
         }
 
-        // reduce the image size to 25% if it is greater than 100 in width or to 70% it it is less.
-        int height, width;
-        if (thumbnail.getHeight() < 1000 || thumbnail.getWidth() < 1000) {
-            height = (int) (thumbnail.getHeight());
-            width = (int) (thumbnail.getWidth());
-        } else {
-            height = (int) (thumbnail.getHeight() * 0.30);
-            width = (int) (thumbnail.getWidth() * 0.30);
-        }
+        return thumbnail;
 
-        return createScaledBitmap(thumbnail, width, height, true);
+        // reduce the image size to 25% if it is greater than 100 in width or to 70% it it is less.
+//        int height, width;
+//        if (thumbnail.getHeight() < 1000 || thumbnail.getWidth() < 1000) {
+//            height = (int) (thumbnail.getHeight());
+//            width = (int) (thumbnail.getWidth());
+//        } else {
+//            height = (int) (thumbnail.getHeight() * 0.30);
+//            width = (int) (thumbnail.getWidth() * 0.30);
+//        }
+//
+//        return createScaledBitmap(thumbnail, width, height, true);
 
 
 //        // new height and width for the image to be suitable for the face detection algorithm.
@@ -322,7 +321,7 @@ public class Main extends AppCompatActivity {
         }
     }
 
-    private void detectFaces(final Bitmap img) {
+    private void detectAndPredictFaces(final Bitmap img) {
         // face detector class coming from the google library.
         final FaceDetector faceDetector = new FaceDetector.Builder(getApplicationContext())
                 .setTrackingEnabled(false)
@@ -339,10 +338,10 @@ public class Main extends AppCompatActivity {
             // the progress bar will not be working outside a thread.
             // AsyncTask is a light threading strategy created by android developers.
 
-            FaceDetectionTask predictor = new FaceDetectionTask(faceDetector, Main.this, 90, new OnResultsCallback() {
+            FaceDetectionTask detector = new FaceDetectionTask(faceDetector, Main.this, 90, new OnResultsCallback() {
+                // this callback will be triggered when the detection task completes.
                 @Override
-                public void faceDetectionResults(SparseArray<Face> facesSparseArray, float angle, float incrementer) {
-
+                public void faceDetectionResults(SparseArray<Face> facesArray, float angle, float incrementer) {
 
                     // get the painter ready to draw rectangles on the image.
 
@@ -354,24 +353,24 @@ public class Main extends AppCompatActivity {
                     rectPaint.setColor(Color.RED);
                     rectPaint.setStyle(Paint.Style.STROKE);
 
-                    Log.v("OUTPUTC", facesSparseArray.size() + "");// log cat the number of detected faces.
+                    Log.v("OUTPUTC", facesArray.size() + "");// log cat the number of detected faces.
 
                     // create array of bitmaps to hold the faces.
-                    final Bitmap faces[] = new Bitmap[facesSparseArray.size()];
+                    final Bitmap faces[] = new Bitmap[facesArray.size()];
 
-                    if (facesSparseArray.size() != 0) {
+
+                    if (facesArray.size() != 0) {
                         // for each face, draw a rectangle
-                        for (int i = 0; i < facesSparseArray.size(); i++) {
-                            Face face = facesSparseArray.valueAt(i);
-                            float x1 = face.getPosition().x;
-                            float y1 = face.getPosition().y;
-                            float x2 = x1 + face.getWidth();
-                            float y2 = y1 + face.getHeight();
+                        for (int i = 0; i < facesArray.size(); i++) {
+                            Face face = facesArray.valueAt(i);
+                            float x1 = face.getPosition().x >= 0 ? face.getPosition().x : 0;
+                            float y1 = face.getPosition().y >= 0 ? face.getPosition().y : 0;
+                            float x2 = (x1 + face.getWidth()) >= img.getWidth() ? img.getWidth() : (x1 + face.getWidth());
+                            float y2 = (y1 + face.getHeight()) >= img.getHeight() ? img.getHeight() : (y1 + face.getHeight());
                             RectF rectF = new RectF(x1, y1, x2, y2);
                             faces[i] = Bitmap.createBitmap(img, (int) x1, (int) y1,
-                                    (int) face.getWidth(), (int) face.getHeight());
+                                    (int) (face.getWidth()), (int) (face.getHeight()));
                             canvas.drawRoundRect(rectF, 1, 1, rectPaint);
-//
                         }
 
                         // restore the bitmap to their original orientation before rotations and display on the image view.
@@ -386,7 +385,7 @@ public class Main extends AppCompatActivity {
 //                        viewImageFacesDetected.setImageDrawable(new BitmapDrawable(getResources(), faces[0]));
 
                         // predict using the model.
-                        AgeGenderPredictionTask predictor = new AgeGenderPredictionTask(Main.this, getAssets(), "model.pb", new OnResultsCallback() {
+                        final AgeGenderPredictionTask predictor = new AgeGenderPredictionTask(Main.this, getAssets(), "model.pb", new OnResultsCallback() {
                             @Override
                             public void faceDetectionResults(SparseArray<Face> face, float angle, float incrementer) {
                                 // silence is golden
@@ -395,28 +394,31 @@ public class Main extends AppCompatActivity {
                             @Override
                             public void predictionResults(String[] results) {
 
+                                ExpandableHeightGridView gridView = findViewById(R.id.grid_view);
+                                gridView.setExpanded(true);
+
                                 Bitmap tempBitmaps[] = new Bitmap[results.length];
 
                                 for (int i = 0; i < results.length; i++) {
 
                                     //draw predictions on the faces:
                                     Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-                                    textPaint.setColor(Color.RED);
-                                    textPaint.setTextSize((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 20, getResources().getDisplayMetrics()));
-                                    textPaint.setTextAlign(Paint.Align.LEFT);
-                                    Paint.FontMetrics metric = textPaint.getFontMetrics();
-                                    int textHeight = (int) Math.ceil(metric.descent - metric.ascent);
-                                    int y = (int) (textHeight - metric.descent);
+//                                    textPaint.setColor(Color.RED);
+//                                    textPaint.setTextSize((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 20, getResources().getDisplayMetrics()));
+//                                    textPaint.setTextAlign(Paint.Align.LEFT);
+//                                    Paint.FontMetrics metric = textPaint.getFontMetrics();
+//                                    int textHeight = (int) Math.ceil(metric.descent - metric.ascent);
+//                                    int y = (int) (textHeight - metric.descent);
                                     //canvas.drawText("text", 0, y, textPaint);
                                     //textPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_OVER)); // Text Overlapping Pattern
                                     tempBitmaps[i] = Bitmap.createBitmap(faces[i].getWidth(), faces[i].getHeight(), Bitmap.Config.RGB_565);
                                     Canvas canvas = new Canvas(tempBitmaps[i]);
                                     canvas.drawBitmap(faces[i], 0, 0, textPaint);
-                                    String[] splitResults = results[i].split(";");
-                                    String gender = splitResults[0];
-                                    String maxAge = splitResults[1];
-                                    Log.v("OUTPUTC", gender + maxAge);
-                                    canvas.drawText(gender + ", " + maxAge, 0, y, textPaint);
+//                                    Log.v("OUTPUTC", gender + maxAge);
+//                                    canvas.drawText(gender + ", " + maxAge, 0, y, textPaint);
+//                                    String[] splitResults = results[i].split(";");
+//                                    String gender = splitResults[0];
+//                                    String maxAge = splitResults[1];
 
 
                                     //        Log.v("OUTPUTC", Arrays.toString(outputs));
@@ -425,18 +427,24 @@ public class Main extends AppCompatActivity {
                                     //        Log.v("OUTPUTC", Arrays.toString(outputs_gender));
                                     //        Log.v("OUTPUTC", Arrays.toString(outputs_age));
 
+
                                 }
-
-                                predButton.setVisibility(View.VISIBLE);
-                                predButton.setEnabled(false);
-                                GridView gridView = findViewById(R.id.grid_view);
-
-                                gridView.setAdapter(new GridImagesAdapter(Main.this, tempBitmaps));
+                                gridView.setAdapter(new GridImagesAdapter(Main.this, tempBitmaps, results));
 
                             }
+
                         });
-                        //predict(faces);
-                        predictor.execute(faces);
+
+
+                        predButton.setVisibility(View.VISIBLE);
+                        predButton.setEnabled(true);
+
+                        predButton.setOnClickListener(new View.OnClickListener() {
+                            public void onClick(View v) {
+                                predictor.execute(faces);
+                            }
+                        });
+
                     }
                     // if there is no faces detected, get "no-faces-deteceted.png" from the assets folder.
                     else {
@@ -459,111 +467,10 @@ public class Main extends AppCompatActivity {
                 }
             });
 
-            predictor.execute(img);
+            detector.execute(img);
 
         }
     }
-
-//    public void predict(Bitmap[] faces, String modelName) {
-//
-//        // import the model
-//        TensorFlowInferenceInterface inferenceInterface = new TensorFlowInferenceInterface(getAssets(), modelName);
-//        int INPUT_SIZE = 64;
-////        String MODEL_FILE = "opt_frozen_model.pb";
-////        String IMAGE_FILE="file:///android_asset/1.jpg";
-////        String INPUT_NAME = "batch_processing/Reshape:0";
-////        String OUTPUT_NAME = "output/output:0";
-//        String INPUT_NAME = "input_1";
-//        String OUTPUT_NAME_GENDER = "dense_1/Softmax";
-//        String OUTPUT_NAME_AGE = "dense_2/Softmax";
-//        String[] OUTPUT_NAMES = {OUTPUT_NAME_AGE, OUTPUT_NAME_GENDER};
-//        int[] intValues = new int[INPUT_SIZE * INPUT_SIZE];
-//        float[] floatValues = new float[INPUT_SIZE * INPUT_SIZE * 3];
-//        Bitmap[] tempBitmaps = new Bitmap[faces.length];
-//
-//
-//        for (int i = 0; i < faces.length; i++) {
-//            Bitmap bitmap = createScaledBitmap(faces[i], INPUT_SIZE, INPUT_SIZE, true);
-//
-//            bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
-//
-//            for (int j = 0; j < intValues.length; ++j) {
-//                final int val = intValues[j];
-//
-////            floatValues[i * 3 + 0] = ((intValues[i] >> 16) & 0xFF ) / 255.0f;
-////            floatValues[i * 3 + 1] = ((intValues[i] >> 8) & 0xFF ) / 255.0f;
-////            floatValues[i * 3 + 2] = (intValues[i] & 0xFF ) / 255.0f;
-//
-//                floatValues[j * 3 + 0] = ((val >> 16) & 0xFF);
-//                floatValues[j * 3 + 1] = ((val >> 8) & 0xFF);
-//                floatValues[j * 3 + 2] = (val & 0xFF);
-//
-//                floatValues[j * 3 + 2] = Color.red(val);
-//                floatValues[j * 3 + 1] = Color.green(val);
-//                floatValues[j * 3] = Color.blue(val);
-//            }
-//
-//
-//            inferenceInterface.feed(INPUT_NAME, floatValues, 1, INPUT_SIZE, INPUT_SIZE, 3);
-//
-//            inferenceInterface.run(OUTPUT_NAMES, false);
-//
-//            float[] outputs_gender = new float[2];
-//            inferenceInterface.fetch(OUTPUT_NAME_GENDER, outputs_gender);
-//
-//            float[] outputs_age = new float[101];
-//            inferenceInterface.fetch(OUTPUT_NAME_AGE, outputs_age);
-//
-//            //multiply each age by its probability:
-//            for (int k = 0; k < outputs_age.length; k++)
-//                outputs_age[k] *= k;
-//
-//            String gender = outputs_gender[0] > 0.5 ? "F" : "M";
-//
-//            float maxAgeProb = outputs_age[0];
-//            for (int k = 1; k < outputs_age.length; k++)
-//                if (outputs_age[k] > maxAgeProb)
-//                    maxAgeProb = outputs_age[k];
-//
-//            float maxAge = 0;
-//            for (int k = 1; k < outputs_age.length; k++) {
-//                if (outputs_age[k] == maxAgeProb) {
-//                    maxAge = k;
-//                    break;
-//                }
-//            }
-//
-//
-//            //draw predictions on the faces:
-//            Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-//            textPaint.setColor(Color.RED);
-//            textPaint.setTextSize((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 20, getResources().getDisplayMetrics()));
-//            textPaint.setTextAlign(Paint.Align.LEFT);
-//            Paint.FontMetrics metric = textPaint.getFontMetrics();
-//            int textHeight = (int) Math.ceil(metric.descent - metric.ascent);
-//            int y = (int) (textHeight - metric.descent);
-////            canvas.drawText("text", 0, y, textPaint);
-////            textPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_OVER)); // Text Overlapping Pattern
-//            tempBitmaps[i] = Bitmap.createBitmap(faces[i].getWidth(), faces[i].getHeight(), Bitmap.Config.RGB_565);
-//            Canvas canvas = new Canvas(tempBitmaps[i]);
-//            canvas.drawBitmap(faces[i], 0, 0, textPaint);
-//            canvas.drawText(gender + ", " + maxAge, 0, y, textPaint);
-//
-//
-////        Log.v("OUTPUTC", Arrays.toString(outputs));
-//
-////        Arrays.sort(outputs_age);
-////        Log.v("OUTPUTC", Arrays.toString(outputs_gender));
-////        Log.v("OUTPUTC", Arrays.toString(outputs_age));
-//
-//        }
-//
-//        predButton.setVisibility(View.VISIBLE);
-//        predButton.setEnabled(false);
-//        GridView gridView = findViewById(R.id.grid_view);
-//
-//        gridView.setAdapter(new GridImagesAdapter(Main.this, tempBitmaps));
-//    }
 
     /**
      * A native method that is implemented by the 'native-lib' native library,

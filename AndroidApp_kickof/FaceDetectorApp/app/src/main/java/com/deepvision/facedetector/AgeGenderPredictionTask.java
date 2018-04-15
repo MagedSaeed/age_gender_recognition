@@ -74,7 +74,7 @@ class AgeGenderPredictionTask extends AsyncTask<Bitmap[], Void, String[]> {
         int[] intValues = new int[INPUT_SIZE * INPUT_SIZE];
         float[] floatValues = new float[INPUT_SIZE * INPUT_SIZE * 3];
 
-        StringBuilder gender = new StringBuilder();
+        String gender = "";
         float maxAge = 0;
 
         String[] resluts = new String[faces.length];
@@ -116,7 +116,7 @@ class AgeGenderPredictionTask extends AsyncTask<Bitmap[], Void, String[]> {
             for (int k = 0; k < outputs_age.length; k++)
                 outputs_age[k] *= k;
 
-            gender.append(outputs_gender[0] > 0.5 ? "F" : "M");
+            gender = outputs_gender[0] > 0.5 ? "F" : "M";
 
             float maxAgeProb = outputs_age[0];
             for (int k = 1; k < outputs_age.length; k++)
