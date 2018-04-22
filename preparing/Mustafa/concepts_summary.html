@@ -1,0 +1,494 @@
+﻿<!DOCTYPE HTML>
+<link rel="stylesheet" type="text/css" href="./style.css">
+<head>
+<title> A Gentle Summary of Important Concepts in Computer Vision</title>
+<h1> A Gentle Summary of Important Concepts in Computer Vision </h1>
+<p>Source: A Practical Introduction to Computer Vision with OpenCV by Kenneth Dawson-Howe</p>
+</head>
+
+<body>
+<h2> 1 Introduction </h2>
+<p>"Computer vision is the automatic analysis of images and videos by computers in order to
+gain some understanding of the world. Computer vision is inspired by the capabilities of the
+human vision system and, when initially addressed in the 1960s and 1970s, it was thought to
+be a relatively straightforward problem to solve. However, the reason we think/thought that
+vision is easy is that we have our own visual system which makes the task seem intuitive to
+our conscious minds. In fact, the human visual system is very complex and even the estimates
+of how much of the brain is involved with visual processing vary from 25% up to more
+than 50%."</p>
+
+<h2> 2 Images <h2>
+<h3> 2.1 Cameras </h3>
+<p>"A camera consists of a photosensitive image plane (which senses the amount of light that falls
+upon it), a housing which prevents stray light from falling onto the image plane and a lens in
+the housing which allows some light to fall onto the image plane in a controlled fashion (i.e.
+the light rays are focused onto the image plane by the lenses)."</p>
+
+<h3>2.2 Images</h3>
+<p>"An image is a picture (generally a 2D projection of a 3D scene) captured by a sensor. It is
+a continuous function of two coordinates in the image plane; usually expressed as (i,j) or
+(column, row) or somewhat confusingly (x,y). To process such an image on a digital computer
+it must be both
+ <ul>
+<li>Sampled into a matrix (M rows and N columns), and </li> 
+<li>Quantised so that each element in the matrix is given an integer value. 
+In other words,the continuous range is split into some number of intervals (k) where most commonly
+k = 256."</li> 
+</ul></p>
+
+<h4>2.2.1 Sampling</h4>
+<p>Digital images are created by sampling a continuous image into discrete elements. Digital
+image sensors consist of a 2D array of photosensitive elements, and each element (pixel/image
+point/sampling point) in the array has some fixed area over which is it photosensitive. </br>
+The number of samples in an image limits the objects that can be distinguished/recognised
+in the image. Hence, it is essential that the resolution (the number of pixels) is sufficient for our
+purpose (whatever that may be). At the same time, too high a resolution will have more detail
+than we need which may make processing harder and will definitely make it slower.</p>
+
+
+<h4>2.2.2 Quantisation</h4>
+<p>Each pixel in a digital image f(i, j) is a function of scene brightness. The brightness values
+are continuous, but we need to represent them discretely using digital values. Typically, the
+number of brightness levels per channel is k = 2^b where b is the number of bits (often 8).
+The question which must be asked is: how many bits are really necessary to represent the
+pixels? The more bits that are used the more memory the image will require; but as progressively
+fewer bits are used it is clear that information is being lost. So it appears that the number of
+bits required actually depends on the purpose to which the image is to be put.</p>
+
+<h3>2.3 Colour Images</h3>
+<p>Colour (multispectral) images have multiple channels, whereas grey-scale (monochromatic)
+images (sometimes, incorrectly, referred to as black and white images) have only one channel.
+A grey-scale image represents the luminance (Y) at every point of a scene. A colour image
+represents both luminance and chrominance (colour information) within the scene. This information
+can be represented in a number of ways but in all cases requires multiple channels of
+image data. Hence, colour images (with the same sampling and quantisation) are bigger and
+more complex than grey-scale images, as we must somehow decide how to process each of
+the channels of information. Note that much of image processing was developed specifically
+for grey-scale images and its application to colour images is often not very well defined.
+Computer vision was for many years based on grey-level images, mainly based on two
+premises:
+<ul>
+<li>Humans can understand grey-level images, so why bother with colour?</li>
+<li>Grey-scale images are smaller and less complex (a number for each point).</li>
+</ul>
+
+However, colour does provide more useful information that can assist with many tasks,
+such as segmentation of the image into physically separate entities (objects, surfaces, etc.).
+
+Humans are sensitive to light at wavelengths between 400 nm and 700 nm and hence most
+camera image sensors are designed to be sensitive at those wavelengths.
+Colour images are more complex than grey-scale images and are typically represented using
+a three-channel colour space, a number of which are described in
+the following sections.</p>
+
+
+<h4>2.3.1 Red–Green–Blue (RGB) Images</h4>
+<p>The most common representation for colour images is to use three channels corresponding,
+roughly, to the red (700 nm), green (546.1 nm) and blue (435.8nm) wavelengths. 
+What this means in effect is that the photosensitive elements in the
+camera are spectrally sensitive to wavelengths which are centred on those colours.
+When displaying the image, a combination of these three channels is presented to the
+user.
+It is worth noting that even though there are around 16.8 million (256∗256∗256) possible
+colours using this representation, there are some colours that cannot be represented using this
+model.
+RGB colour information can easily be converted to grey-scale using a formula such as:
+Y = 0.299R + 0.587G + 0.114B 
+It is also worth pointing out that in most cameras the elements that are photosensitive
+to different wavelengths are not co-located. Instead, they are set out in a regular pattern,
+and RGB values are interpolated in some way from
+these sensed values. This means that the image received is not even a proper sampling
+of the continuous image, but rather is interpolated from the data received by the sensor
+elements.</p>
+
+<h4>2.3.2 Cyan–Magenta–Yellow (CMY) Images</h4>
+<p>The CMY model is based on the secondary colours (RGB are the primary colours), and is a
+subtractive colour scheme; that is the values of the C, M and Y are subtracted from pure white
+in order to get the required colour. For this reason, it is often employed as a
+colour model within printers where white is the starting point.</p>
+
+<h4>2.3.3 YUV Images </h4>
+<p>The YUV colour model is used for analogue television signals (PAL, NTSC…) and is comprised
+of luminance (Y) together with two colour components: blue minus luminance (U)
+and red minus luminance (V).The human vision system is much more sensitive to luminance than it is to chrominance,
+and this fact is exploited when images are encoded in television signals in order to reduce the amount of data that needs to be transmitted. 
+For example, in YUV420p format 4 bytes of luminance (Y) are transmitted for every 2 bytes of chrominance (1 U and 1 V).</p>
+
+<h4>2.3.4 Hue Luminance Saturation (HLS) Images </h4>
+<p>The HLS model is frequently used in computer vision because, as well as separating the
+luminance and the chrominance, it separates the chrominance into hue and saturation, giving
+us quantities which we can talk about easily (e.g. dark blue, light red, etc.). The luminance
+typically ranges from 0 to 1. The hue describes the colour and ranges from 0 to 360◦. The
+saturation S is the degree of strength or purity of the colour and ranges from 0 to 1. In practical
+implementations, all of these quantities are typically scaled to the 0 to 255 range (although in
+OpenCV hue values range between 0 and 179).
+The most important fact to take is the circular nature of the
+hue axis. This means that the minimum (0) and maximum (179) hue values are only 1 apart.
+These values correspond to red pixels. This means that if processing the hue channel
+one must be extremely careful, and typically special processing needs to be developed. For example, if averaging hue values 0, 178, 1, 177 and 179, the result should be 179, rather
+than 107!</p>
+
+<h4>2.3.5 Other Colour Spaces</h4>
+
+<p>There are a large number of other colour spaces available to use. Bear in mind that most of
+these are just alternative representations of the image. In theory, they contain no more or less
+information that an RGB image or a CMY image or HSV image. However, they do contain
+more information than a grey-scale image as in this case information has been discarded (in
+comparison to an original colour image). OpenCV provides support (in terms of conversion
+functions) for six other colour spaces:
+<ol>
+<li>HSV. Hue Saturation Value, is similar to HLS but the definitions of channels differ somewhat.</li>
+<li>YCrCb is a scaled version of YUV, which is often used in image and video compression.</li>
+<li>CIE XYZ is a standard reference colour space, where the channel responses are similar to
+the different cone responses in the human eye.</li>
+<li>CIE L∗u∗v∗ is another standard colour space defined by CIE which is intended to be provide
+a perceptually uniform colour space where the differences between colours are proportional
+to our perceived differences. L∗ is a measure of luminance and u∗ and v∗ are chromaticity
+values.</li>
+<li>CIE L∗a∗b∗ is a device independent colour space that includes all colours that can be
+perceived by humans.</li>
+<li>Bayer is the pattern widely used in CCD sensors, and is used if we have raw sensor data
+(i.e. that have not been interpolated).</li>
+</ol>
+</p>
+
+<h4>2.3.6 Some Colour Applications</h4>
+<p>In some applications we need to identify which pixels represent a particular colour. For
+example, to locate road signs we will be particularly interested in red, yellow, blue, black and
+white. We can identify specific colours by creating simple formulas that identify them (as will
+be shown in the two examples which follow) but it should be noted that this should really be
+addressed in a more rigorous fashion, such as described in Section 3.5. Equations of the type shown here are likely to fail as the criteria are not based on a sufficient quantity of images (with
+varying objects and lighting, etc.). Also the criteria themselves are really too crude, effectively
+identifying large subspaces in colour space (which will result in unnecessary false positives –
+e.g. points identified as skin pixels when they do not represent skin).</p>
+
+<h5> 2.3.6.1 Skin Detection</h5>
+<p>Skin detection can be performed by simply analysing pixels values. Through simple experimentation
+it was found that
+(Saturation >= 0.2) AND (0.5 < Luminance∕Saturation < 3.0) AND
+(Hue <= 28◦ OR Hue >= 330◦) 
+will identify many skin pixels. However, as can be seen the right image in Figure 2.12, this
+also identifies other pixels (such as parts of the flag).</p>
+
+<h3>2.4 Noise</h3>
+<p>Images are normally affected by noise (anything that degrades the ideal image) to some degree,
+and this noise can have a serious impact on processing. Noise is caused by the environment, the imaging device, electrical interference, the digitisation process, and so on. We need to be
+able to both measure noise and somehow correct it.
+The most common measure of noise is the signal to noise ratio.</p>
+
+<h4>2.4.1 Types of Noise</h4>
+<h5>2.4.1.1 Gaussian Noise </h5>
+<p>Gaussian noise is a good approximation to much real noise. Noise v(i, j) is modelled as having a
+Gaussian distribution around some mean (𝜇), which is usually 0, with some standard deviation
+(𝜎).</p>
+
+<h5>2.4.1.1 Salt and Pepper Noise </h5>
+<p>Impulse noise is corruption with individual noisy pixels whose brightness differs significantly
+from that of the neighbourhood. Salt and pepper noise is a type of impulse noise where
+saturated impulse noise affects the image (i.e. it is corrupted with pure white and black pixels).</p>
+
+<h4>2.4.2 Noise Models</h4>
+<p>Noise must be joined with the image data in some way. The way in which we model this
+depends upon whether the noise is data independent or data dependent.</p>
+
+<h5>2.4.2.1 Additive Noise</h5>
+<p>In the case of data independent noise (i.e. noise where the amount of noise is not related to the
+image data itself), an additive noise model is appropriate:
+f(i, j) = g(i, j) + v(i, j) 
+where g(i, j) is the ideal image, v(i, j) is the noise and f(i, j) is the actual image.</p>
+
+<h5>2.4.2.2 Multiplicative Noise</h5>
+<p>In the case of data dependent noise (i.e. noise where the amount of noise is related to the image
+data itself), a multiplicative noise model is appropriate:
+f(i, j) = g(i, j) + g(i, j).v(i, j) 
+where g(i, j) is the ideal image, v(i, j) is the noise and f(i, j) is the actual image</p>
+
+<h4>2.4.3 Noise Generation</h4>
+
+<h4>2.4.4 Noise Evaluation</h4>
+
+<h3>2.5 Smoothing</h3>
+<p>Removing or, more likely, reducing noise can be achieved by a variety of methods, a number
+of which are presented here. Note that different techniques are appropriate in different
+circumstances, often due to assumptions underlying the techniques or the nature of the
+image data.
+The most commonly used approaches to noise reduction are linear smoothing transformations,
+where the computation can be expressed as a linear sum (e.g. see Section 2.5.1 and
+Section 2.5.2).
+Noise suppression using linear smoothing transformations typically results in the blurring
+of sharp edges. A number of nonlinear transformations (which cannot be expressed as a simple
+linear sum) have been proposed to deal with this (e.g. see Section 2.5.3 and Section 2.5.4).
+Generally, these transformations require that some logical operation/test is performed at every
+location in the image.
+None of the techniques described here can eliminate the degradations if they are large blobs
+or thick stripes. In such cases, image restoration techniques (in the frequency domain) may
+provide a solution.</p>
+
+
+<h4>2.5.1 Image Averaging</h4>
+<p>If there are multiple images of exactly the same scene, then they can be averaged to reduce
+the noise.
+This assumes an additive noise model. Also assuming that
+<ul>
+<li> all the images are the same (i.e. the scene and camera are static)</li>  
+<li>there is statistical independence between the noise in each image</li>
+<li>the noise has a Gaussian distribution with a 0 mean and a 𝜎 standard deviation.</li>
+</ul>
+then the averaging of the image will alter the distribution of the noise, maintaining the
+Gaussian nature but reducing the standard deviation by a factor of √n.
+Note that in the case of salt and pepper noise, the noise is averaged into the image and hence
+this type of smoothing is not particularly appropriate for such noise.</p>
+
+
+<h4>2.5.2 Local Averaging and Gaussian Smoothing</h4>
+<p>If only one image is available, averaging can still be performed but must be done in a local
+neighbourhood around each point (rather than using the corresponding points from multiple
+frames). The simplest form of this averaging is, for each point in the image, to simply compute
+the local average of the current point and its 8 closest neighbours (i.e. to compute the local
+average of a 3x3 block of pixels centred on the current point).
+Where each of the points is equally weighted, the technique is referred to as local averaging.
+It is possible to change the weights, for example so that points closer to the current point are
+given higher weights. One very common such weighting is defined by the Gaussian distribution
+and use of such weighted averages is referred to at Gaussian smoothing.As we are averaging neighbouring pixels, we introduce blurring into the image which
+reduces the visible (Gaussian) noise. Unfortunately, this blurring also has a major impact on
+boundaries/edges (places where the image changes grey-scale or colour very rapidly) within
+the image, making the image fuzzier and hence (in some cases) harder to process accurately.In the case of salt and pepper noise, again the noise will be smoothed into the image and
+hence this is not the most appropriate filter for such noise.
+Filter masks can be larger than 3x3, in which case the effect (reduction in noise and increase
+in blurring) will become more significant. </p>
+
+
+
+<h4>2.5.3 Rotating Mask</h4>
+<p>The rotating mask is a nonlinear operator that applies one of nine possible local averaging
+filters depending on which image region is most homogeneous (i.e. self-similar).
+Relative to the current point, nine masks are defined all of which include the current point.
+The shape and size of the masks can vary When averaging, we apply one of the masks to the image data to get an output value for the
+current point (i.e. we determine a local average of the points that correspond to those in the
+mask). The main question is which mask to choose for any given point. What we are trying to
+achieve is to reduce noise in the current point, and hence we want to average the current point
+with other similar points from the same physical stimulus (i.e. surface or object). We cannot
+tell the physical origin of pixels, but we can approximate it to some extent by looking for the
+local region which is most consistent (self-similar). We do this by calculating the dispersion
+(the degree to which the pixels are on average different from the average value) for each mask
+and choose the one with the minimum dispersion.</br>
+
+Algorithm 2.1</br>
+For each f(i,j)</br>
+Calculate the dispersion for all masks.</br>
+Pick the mask with the minimum dispersion.</br>
+Assign output point f’(i,j) the average of that mask.</br>
+
+Averaging with a rotating mask is quite effective at suppressing noise and sharpening
+the image (edges), although it will be significantly slower than simple local averaging.</p>
+
+
+
+<h4>2.5.4 Median Filter</h4>
+<p>Another nonlinear smoothing operation is to replace each pixel with the median of the pixels
+in a small region (e.g. 3x3) centred around the pixel. The median value is the middle value in an ordered list. So, for example, if a 3x3 region contained the grey levels (25 21 23 25 18
+255 30 13 22), the ordered list would be (13 18 22 21 23 25 25 30 255) and the median would
+be 23. Note that the average value would have been 48 due to the single point of noise (i.e.
+the 255), so this technique is quite good at dealing with noise. In addition, this technique does
+not blur edges much and can be applied iteratively. In fact, the effect of median filtering is
+quite similar to that of averaging using a rotating mask.</p>
+
+
+<h2> 3 Histograms </h2>
+<p>An image histogram is an abstraction of an image where the frequency of each image (brightness/intensity)
+value is determined.</p>
+
+<h3>3.1 1D Histograms</h3>
+<p>In the case of a grey-scale image in which there are 256 grey scale intensities (0–255), 256
+counts are computed indicating how many pixels each of the grey-scales in the image have.
+The histogram contains global information about the image and that information is completely
+independent of the position and orientation of objects in the scene. In some cases,
+the histogram or information derived from it (such as the average intensity and its standard
+deviation) can be used to perform classification (e.g. apples with bruises will result in dark
+spots, which will change the shape of the histogram when compared to histograms from good
+apples). However, care must be taken as image histograms are not unique and hence many
+very different images may have similar (or even the same) histogram.</p>
+
+
+<h4>3.1.1 Histogram Smoothing</h4>
+<p>Global and local maxima and minima in the histogram can also provide useful information
+although, there can be many local maxima and minima. To reduce
+this number, the histogram may be smoothed. This is done by creating a new array of values
+where each value is the average of a number of values centred on the corresponding value
+in the original histogram. This process is often referred to as filtering.</p>
+
+
+<h4>3.1.2 Colour Histograms</h4>
+<p>Another issue that arises is what to do with colour images. Often histograms are determined
+for each channel independently.</p>
+
+<h3>3.2 3D Histograms</h3>
+<h3>3.3 Histogram/Image Equalisation</h3>
+<p>Often images may be difficult for a human observer to decipher due to the picture being,
+for example, too dark. It has been determined that humans can distinguish between 700
+and 900 shades of grey under optimal viewing conditions (Kimpe & Tuytschaever, 2007),
+although in very dark or bright sections of a image the just noticeable difference (JND)
+reduces significantly. However, it is also clear that it is easier for humans to distinguish
+larger differences, so if the distribution of grey-scales in an image is improved, this facilitates
+understanding by human observers.
+One technique for improving the distribution of grey-scales in an image is histogram
+equalisation. This technique attempts to distribute the grey-scales in an image evenly, so that
+the resulting histogram is flat (i.e. all grey-scales have exactly the same number of points).
+This is not really feasible (unless points of some common grey-scales in the input are mapped
+to multiple different grey-scales in the output), so instead the resulting histogram often has
+some grey-scales with no associated pixels, interspersed with high values.</p>
+
+
+<h3>3.4 Histogram Comparison</h3>
+<p>Retrieving images that are similar to a given image or that contain particular content is a wellknown
+imaging problem. Most image search engines provide this functionality, although most
+frequently it is addressed by using meta-data tags associated with each image (i.e. keywords
+associated with an image indicating roughly what their content is). It is possible to provide
+assistance to this process by analysing the colour distribution present in an image and this can
+be done by comparing histograms derived from the images. </p>
+
+
+<h3>3.5 Back-projection</h3>
+<p>In Sections 2.3.6.1 and 2.3.6.2 we considered some very simple approaches to selecting
+particular colours within images. These approaches select rather crude subspaces within the
+colour spaces in which they are defined. A better approach to this problem is to:
+1. Obtain a representative sample set of the colour(s) to be selected.
+2. Create a histogram of the samples.
+3. Normalise the histogram so that the maximum value is 1.0. This allows the histogram
+values to be treated as probabilities (i.e. the probability that a pixel with the corresponding
+colour is from the sample set).
+4. Back-project the normalised histogram onto any image f(i, j) where the similarity of the
+pixels in the image to those in the sample set is required, in effect providing a probability
+image p() where p(i, j) indicates the similarity between f(i, j) and the sample set (i.e.
+p(i, j) = h(f(i, j))).</p>
+
+
+<h3>3.6 k-means Clustering</h3>
+
+
+
+<h2> 4 Binary Vision </h2>
+<p>Grey-scale images generally have 8 bits per pixel. While processing these images is easier in
+some ways than processing colour images, there is a simpler form of image, the binary image,
+in which processing is even more straightforward. In fact, a significant portion of practical
+applications of computer vision have been developed using binary vision (Marchand-Maillet
+and Sharaiha, 1999).
+A binary image is one in which there is only a single bit per pixel (i.e. black or white).
+These images are created by thresholding (see Section 4.1) where the thresholds used are
+determined in a variety of ways (see Section 4.2 and Section 4.3). The resulting binary images
+are often post-processed using mathematical morphology (see Section 4.4) and the resulting
+segmented binary regions are extracted from the image using connected components analysis
+(see Section 4.5).
+It is worth mentioning that binary images can be created from many types of image, such
+as intensity images, gradient images, difference images, and so on.</p>
+
+
+<h3>4.1 Thresholding</h3>
+<p>A binary image is created from a grey-scale image by thresholding. The binary thresholding
+algorithm is simply:
+Algorithm 4.1
+For all pixels (i, j)
+f ′
+(i, j) = 1 where f(i, j) >= T
+= 0 where f(i, j) < T Often grey-level 255 is used instead of binary 1 (so that the resulting image can be represented
+using a 8-bit format and displayed/processed in the same manner as the original
+grey-scale image).
+
+The thresholding operation is generally used in order to separate some objects of interest
+from the background. Most typically the object(s) of interest are represented by 1 (or 255)</p>
+
+<h4>4.1.1 Thresholding Problems</h4>
+<p>Arguably, the most important thing to note about binary imaging is that the foreground and
+the background that are being separated need to be distinct in the image being thresholded. If
+they are not distinct then it will be difficult (or even impossible) to accurately segment them
+using thresholding. However, there are a number of techniques (e.g. adaptive thresholding) which are used to try to deal with situations where the distinction between foreground and
+background is not clear, and there are a number of techniques (e.g. erosion, dilation, opening,
+closing) which aim to improve a binary image where the segmentation is imperfect.</p>
+
+
+<h3>4.2 Threshold Detection Methods</h3>
+<p>While for some industrial applications thresholds are set manually, this can cause problems
+over time as lighting changes throughout the day. Even within industrial lighting enclosures,
+the lighting sources gradually become weaker over time. Hence, mechanisms are required to
+automatically determine thresholds (Sezgin and Sankur, 2004).</p>
+
+
+<h4>4.2.1 Bimodal Histogram Analysis</h4>
+<p>It is possible to determine a threshold for an image by analysis of the histogram of the image.
+If we assume that the background is predominantly centred around one grey-scale, and the
+foreground is predominantly centred around another grey-scale, then we can assume that the
+histogram will be bimodal (i.e. have two main peaks). Then, to find the threshold we can
+simply look for the anti-mode (the minimum value between the peaks). Consider a case where there might be many local maxima and minima and hence finding the
+anti-mode is not straightforward. There are a few possibilities when addressing this, such as to
+smooth the histogram (to suppress the noisy peaks), or to use a variable step size (rather than
+considering each element of the histogram separately). We could also ignore all points that
+have a high gradient (as these represent boundaries) and this should provide better separation
+between the two modes of the histogram. Alternatively, we could histogram only the boundary
+points, and then take the mode of the resulting (hopefully unimodal) histogram.
+However, these approaches tend to shift the anti-mode, resulting in poor threshold values.
+There are other approaches, described in the sections that follow, based on the analysis of the
+histogram (which represents the image), which are more reliable.</p>
+
+
+
+<h4>4.2.2 Optimal Thresholding</h4>
+<p>The preceding technique works reasonably well as long as the modes are reasonably well
+separated and as long as the noise is not too great. However, as the modes become closer
+together the anti-mode is no longer the optimal solution. For two normal distributionsthe optimal threshold is where the two normal distributions
+intersect.If we can model the histogram as the sum of two normal, but possibly overlapping, distributions,
+we can use a technique called Optimal Thresholding. The algorithm for optimal
+thresholding iterates until it reaches a solution, although there is no intuitive way to explain
+why it returns the optimal answer.
+The optimal thresholding algorithm: Algorithm 4.2
+1. Set t = 0, Tt = <some initial threshold value>
+2. Compute average values for the foreground and background based on the current
+threshold T
+3. Update the threshold (for the next iteration).
+4. Go back to 2 until Tt+1 = Tt
+</p>
+
+
+
+<h4>4.2.3 Otsu Thresholding</h4>
+<p>Optimal thresholding makes the assumption that the histogram is the sum of two normal
+distributions. This is often not the case and so the result of optimal thresholding may not be
+acceptable. Another alternative was defined by Otsu (Otsu, 1979) where the spread of the pixel
+values on each side of the threshold is minimised:
+Select the threshold T (by considering all possible thresholds) which minimises
+the within class variance 𝜎2
+W (T) The threshold with the smallest within class variance is also the threshold with the largest
+between class variance 𝜎2
+B (T) (which is easier to compute). This is because 𝜎2
+B (T) = 𝜎2 −
+𝜎2
+W (T) where 𝜇 and 𝜎2 are the mean and variance of the image data respectively</p>
+
+
+
+<h3>4.3 Variations on Thresholding</h3>
+<h4>4.3.1 Adaptive Thresholding</h4>
+<h4>4.3.2 Band Thresholding</h4>
+<h4>4.3.3 Semi-thresholding</h4>
+<h4>4.3.4 Multispectral Thresholding</h4>
+<h3>4.4 Mathematical Morphology</h3>
+<h4>4.4.1 Dilation</h4>
+<h4>4.4.2 Erosion</h4>
+<h4>4.4.3 Opening and Closing</h4>
+<h4>4.4.4 Grey-scale and Colour Morphology</h4>
+<h3>4.5 Connectivity</h3>
+<h4>4.5.1 Connectedness: Paradoxes and Solutions</h4>
+<h4>4.5.2 Connected Components Analysis</h4>
+
+<h2>5 Geometric Transformations <h2>
+
+<h2>6 Edges <h2>
+
+<h2>7 Features <h2>
+
+<h2>8 Recognition <h2>
+
+
+
+</body>
+
+

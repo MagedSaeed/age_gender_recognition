@@ -1,0 +1,19 @@
+h1 {
+   color:red
+}
+
+h2 {
+   color:green
+}
+
+h3 {
+   color:blue
+}
+
+h4,h5,h6 {
+   color:coral
+}
+
+p,ul,li {
+   color:DarkRed;
+}
