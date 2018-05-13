@@ -196,30 +196,6 @@ public class Main extends AppCompatActivity {
                     f.delete();
 
 
-                    // this code might be added in case of saving the image after manipulation.
-                    // I GUESS !! I GUESS !! I GUESS !! I GUESS !!
-
-//                    String path = android.os.Environment
-//                            .getExternalStorageDirectory()
-//                            + File.separator
-//                            + "Phoenix" + File.separator + "default";
-//
-//                    OutputStream outFile;
-//
-//                    File file = new File(path, String.valueOf(System.currentTimeMillis()) + ".jpg");
-//                    try {
-//                        outFile = new FileOutputStream(file);
-//                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outFile);
-//                        outFile.flush();
-//                        outFile.close();
-//                    } catch (FileNotFoundException e) {
-//                        e.printStackTrace();
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
-//                    }
-
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -265,33 +241,6 @@ public class Main extends AppCompatActivity {
 
         return thumbnail;
 
-        // reduce the image size to 25% if it is greater than 100 in width or to 70% it it is less.
-//        int height, width;
-//        if (thumbnail.getHeight() < 1000 || thumbnail.getWidth() < 1000) {
-//            height = (int) (thumbnail.getHeight());
-//            width = (int) (thumbnail.getWidth());
-//        } else {
-//            height = (int) (thumbnail.getHeight() * 0.30);
-//            width = (int) (thumbnail.getWidth() * 0.30);
-//        }
-//
-//        return createScaledBitmap(thumbnail, width, height, true);
-
-
-//        // new height and width for the image to be suitable for the face detection algorithm.
-//           It destructs the image though.
-
-//        int height,width, orgHight, orgWidth;
-//        width = 640; // targeted width of the image
-//        orgHight = thumbnail.getHeight();
-//        orgWidth = thumbnail.getWidth();
-//        height = orgHight/(orgWidth/width); // targeted height.
-//        Bitmap scaledImage;
-//        if(orgWidth>width)
-//            scaledImage = Bitmap.createScaledBitmap(thumbnail, width, height, true);
-//        else
-//            scaledImage = thumbnail;
-//        return scaledImage;
     }
 
     // method to detect faces.
@@ -410,31 +359,12 @@ public class Main extends AppCompatActivity {
 
                                     //draw predictions on the faces:
                                     Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-//                                    textPaint.setColor(Color.RED);
-//                                    textPaint.setTextSize((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 20, getResources().getDisplayMetrics()));
-//                                    textPaint.setTextAlign(Paint.Align.LEFT);
-//                                    Paint.FontMetrics metric = textPaint.getFontMetrics();
-//                                    int textHeight = (int) Math.ceil(metric.descent - metric.ascent);
-//                                    int y = (int) (textHeight - metric.descent);
 
                                     //canvas.drawText("text", 0, y, textPaint);
                                     //textPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_OVER)); // Text Overlapping Pattern
                                     tempBitmaps[i] = Bitmap.createBitmap(faces[i].getWidth(), faces[i].getHeight(), Bitmap.Config.RGB_565);
                                     Canvas canvas = new Canvas(tempBitmaps[i]);
                                     canvas.drawBitmap(faces[i], 0, 0, textPaint);
-//                                    Log.v("OUTPUTC", gender + maxAge);
-//                                    canvas.drawText(gender + ", " + maxAge, 0, y, textPaint);
-//                                    String[] splitResults = results[i].split(";");
-//                                    String gender = splitResults[0];
-//                                    String maxAge = splitResults[1];
-
-
-                                    //        Log.v("OUTPUTC", Arrays.toString(outputs));
-
-                                    //        Arrays.sort(outputs_age);
-                                    //        Log.v("OUTPUTC", Arrays.toString(outputs_gender));
-                                    //        Log.v("OUTPUTC", Arrays.toString(outputs_age));
-
 
                                 }
                                 gridViewDex.setAdapter(new GridImagesAdapter(Main.this, tempBitmaps, results));

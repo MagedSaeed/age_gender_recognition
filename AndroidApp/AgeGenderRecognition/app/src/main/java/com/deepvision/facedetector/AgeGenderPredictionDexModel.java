@@ -64,10 +64,6 @@ class AgeGenderPredictionDexModel extends AsyncTask<Bitmap[], Void, String[]> {
 
 
         int INPUT_SIZE = 64;
-//        String MODEL_FILE = "opt_frozen_model.pb";
-//        String IMAGE_FILE="file:///android_asset/1.jpg";
-//        String INPUT_NAME = "batch_processing/Reshape:0";
-//        String OUTPUT_NAME = "output/output:0";
         String INPUT_NAME = "input_1";
         String OUTPUT_NAME_GENDER = "dense_1/Softmax";
         String OUTPUT_NAME_AGE = "dense_2/Softmax";
