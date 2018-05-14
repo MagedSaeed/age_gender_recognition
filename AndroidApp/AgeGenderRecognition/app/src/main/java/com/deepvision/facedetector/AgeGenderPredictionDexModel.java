@@ -62,7 +62,6 @@ class AgeGenderPredictionDexModel extends AsyncTask<Bitmap[], Void, String[]> {
         // Import the model
         TensorFlowInferenceInterface inferenceInterface = new TensorFlowInferenceInterface(assets, modelName);
 
-
         int INPUT_SIZE = 64;
         String INPUT_NAME = "input_1";
         String OUTPUT_NAME_GENDER = "dense_1/Softmax";
@@ -84,10 +83,6 @@ class AgeGenderPredictionDexModel extends AsyncTask<Bitmap[], Void, String[]> {
 
             for (int j = 0; j < intValues.length; ++j) {
                 final int val = intValues[j];
-
-//            floatValues[i * 3 + 0] = ((intValues[i] >> 16) & 0xFF ) / 255.0f;
-//            floatValues[i * 3 + 1] = ((intValues[i] >> 8) & 0xFF ) / 255.0f;
-//            floatValues[i * 3 + 2] = (intValues[i] & 0xFF ) / 255.0f;
 
                 floatValues[j * 3 + 0] = ((val >> 16) & 0xFF);
                 floatValues[j * 3 + 1] = ((val >> 8) & 0xFF);
@@ -129,7 +124,6 @@ class AgeGenderPredictionDexModel extends AsyncTask<Bitmap[], Void, String[]> {
             }
 
             resluts[i] = gender + ";" + maxAge;
-
         }
 
         return resluts;

@@ -130,9 +130,9 @@ public class Main extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
 
-        // Inflate the menu; this adds options to the action bar if it is present.
+        // Inflate the menu; this adds options menu to the action bar if it is present.
 
-//        getMenuInflater().inflate(R.menu.main, menu);
+        // getMenuInflater().inflate(R.menu.main, menu);
 
         return true;
 
@@ -360,8 +360,6 @@ public class Main extends AppCompatActivity {
                                     //draw predictions on the faces:
                                     Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
 
-                                    //canvas.drawText("text", 0, y, textPaint);
-                                    //textPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_OVER)); // Text Overlapping Pattern
                                     tempBitmaps[i] = Bitmap.createBitmap(faces[i].getWidth(), faces[i].getHeight(), Bitmap.Config.RGB_565);
                                     Canvas canvas = new Canvas(tempBitmaps[i]);
                                     canvas.drawBitmap(faces[i], 0, 0, textPaint);

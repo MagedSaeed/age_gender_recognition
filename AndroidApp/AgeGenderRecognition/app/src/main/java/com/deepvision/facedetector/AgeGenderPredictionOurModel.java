@@ -93,10 +93,6 @@ class AgeGenderPredictionOurModel extends AsyncTask<Bitmap[], Void, String[]> {
             for (int j = 0; j < intValues.length; ++j) {
                 final int val = intValues[j];
 
-//            floatValues[i * 3 + 0] = ((intValues[i] >> 16) & 0xFF ) / 255.0f;
-//            floatValues[i * 3 + 1] = ((intValues[i] >> 8) & 0xFF ) / 255.0f;
-//            floatValues[i * 3 + 2] = (intValues[i] & 0xFF ) / 255.0f;
-
                 floatValues[j * 3 + 0] = ((val >> 16) & 0xFF);
                 floatValues[j * 3 + 1] = ((val >> 8) & 0xFF);
                 floatValues[j * 3 + 2] = (val & 0xFF);
